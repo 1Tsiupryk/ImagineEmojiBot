@@ -10,7 +10,7 @@ async def main() -> None:
     logging.basicConfig(level=logging.INFO)
 
     config = load_config()
-    bot = Bot(token=config.bot.token, parse_mode="HTML")
+    bot = Bot(token=config.bot_token)
 
     dispatcher = Dispatcher()
     dispatcher.include_router(start_router)
