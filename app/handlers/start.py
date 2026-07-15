@@ -5,6 +5,8 @@ from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup
 )
+from aiogram.fsm.context import FSMContext
+from app.states import EmojiCreation
 from aiogram.filters import CommandStart
 
 router = Router()
@@ -25,18 +27,24 @@ background_keyboard = InlineKeyboardMarkup(
 )
 
 @router.message(CommandStart())
-async def handle_start(message: Message) -> None:
+async def handle_start(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    await state.set_state(EmojiCreation.choosing_background)
+
     await message.answer("Привет! Я помогу тебе создать набор эмодзи из твоего изображения!\n\n"
                          "Нужно ли удалить фон?", 
                          reply_markup=background_keyboard
                          )
     
 
-@router.callback_query(F.data.startswith("background:"))
-async def handle_background_choice(callback: CallbackQuery) -> None:
+@router.callback_query(EmojiCreation.choosing_background, F.data.startswith("background:"))
+async def handle_background_choice(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
 
     remove_background = callback.data == "background:remove"
+
+    await state.update_data(remove_background=remove_background)
+    await state.set_state(EmojiCreation.waiting_for_image)
 
     if callback.message is None:
         return

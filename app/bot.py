@@ -5,6 +5,7 @@ from aiogram import Bot, Dispatcher
 
 from app.config import load_config
 from app.handlers.start import router as start_router
+from aiogram.fsm.storage.memory import MemoryStorage
 
 async def main() -> None:
     logging.basicConfig(level=logging.INFO)
@@ -12,7 +13,8 @@ async def main() -> None:
     config = load_config()
     bot = Bot(token=config.bot_token)
 
-    dispatcher = Dispatcher()
+    #temporary storage for FSM
+    dispatcher = Dispatcher(storage=MemoryStorage())
     dispatcher.include_router(start_router)
 
     try:
