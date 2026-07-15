@@ -6,6 +6,7 @@ from aiogram import Bot, Dispatcher
 from app.config import load_config
 from app.handlers.start import router as start_router
 from aiogram.fsm.storage.memory import MemoryStorage
+from app.handlers.image import router as image_router
 
 async def main() -> None:
     logging.basicConfig(level=logging.INFO)
@@ -16,6 +17,7 @@ async def main() -> None:
     #temporary storage for FSM
     dispatcher = Dispatcher(storage=MemoryStorage())
     dispatcher.include_router(start_router)
+    dispatcher.include_router(image_router)
 
     try:
         await dispatcher.start_polling(bot)
