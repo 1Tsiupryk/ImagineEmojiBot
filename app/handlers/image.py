@@ -2,7 +2,7 @@ from io import BytesIO
 
 from aiogram import Bot, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, BufferedInputFile
+from aiogram.types import Message
 
 from app.services.image import (
     MAX_IMAGE_BYTES,
@@ -19,6 +19,11 @@ from app.services.mosaic import (
 )
 
 import asyncio
+
+from app.services.sticker_set import (
+    StickerSetCreationError,
+    create_custom_emoji_pack,
+)
 
 router = Router()
 
@@ -166,22 +171,43 @@ async def handle_size(message: Message, state: FSMContext, bot: Bot) -> None:
 
     await status_message.edit_text(
         "Изображение обработано.\n\n"
-        f"Размер: "
-        f"{mosaic_size.width} × {mosaic_size.height} px\n"
-        f"Сетка: "
-        f"{processed.columns} × {processed.rows}\n"
-        f"Создано тайлов: {processed.tile_count}"
+        f"Создано тайлов: {processed.tile_count}\n"
+        "Создаю набор эмодзи..."
     )
 
-    first_tile = BufferedInputFile(
-        processed.tiles[0],
-        filename="tile_1.png",
+    if message.from_user is None:
+        await state.clear()
+
+        await status_message.edit_text(
+            "Не удалось определить пользователя."
+        )
+        return
+
+    try:
+        pack = await create_custom_emoji_pack(
+            bot=bot,
+            user_id=message.from_user.id,
+            tiles=processed.tiles
+        )
+    except StickerSetCreationError as error:
+        await state.clear()
+
+        error_text = str(error)
+
+        if error.pack_link is not None:
+            error_text += (
+                "\n\nTelegram успел создать неполный набор:\n"
+                f"{error.pack_link}"
+            )
+
+        await status_message.edit_text(error_text)
+        return
+
+    await status_message.edit_text(
+        "Набор эмодзи создан!\n\n"
+        f"Количество эмодзи: "
+        f"{len(pack.custom_emoji_ids)}\n"
+        f"Ссылка на набор:\n{pack.link}"
     )
 
-    await message.answer_document(
-        first_tile,
-        caption=(
-            "Это первый тайл для проверки. "
-            "Его размер должен быть 100 × 100 px."
-        ),
-    )
+    await state.clear()
