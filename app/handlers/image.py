@@ -2,11 +2,13 @@ from io import BytesIO
 
 from aiogram import Bot, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram.types import Message, BufferedInputFile
 
 from app.services.image import (
     MAX_IMAGE_BYTES,
+    ImageProcessingError,
     ImageValidationError,
+    create_mosaic_tiles,
     validate_image
 )
 from app.states import EmojiCreation
@@ -16,6 +18,7 @@ from app.services.mosaic import (
     parse_mosaic_size,
 )
 
+import asyncio
 
 router = Router()
 
@@ -75,7 +78,7 @@ async def handle_image(message: Message, state: FSMContext, bot: Bot) -> None:
 )
 
 @router.message(EmojiCreation.waiting_for_size)
-async def handle_size(message: Message, state: FSMContext) -> None:
+async def handle_size(message: Message, state: FSMContext, bot: Bot) -> None:
     if not message.text:
         await message.answer(
             "Отправь ширину и высоту текстом.\n"
@@ -124,19 +127,61 @@ async def handle_size(message: Message, state: FSMContext) -> None:
         False
     )
 
-    background_text = (
-        "будет удалён" if remove_background
-        else "останется без изменений"
+    status_message = await message.answer(
+        "Обрабатываю изображение..."
     )
 
-    await message.answer(
-        "Размер принят.\n\n"
-        f"Итоговое изображение: "
+    source_buffer = BytesIO()
+
+    try:
+        await bot.download(
+            data["image_file_id"],
+            destination=source_buffer,
+        )
+    except Exception:
+        await state.clear()
+
+        await status_message.edit_text(
+            "Не удалось повторно скачать изображение.\n"
+            "Отправь /start, чтобы попробовать ещё раз."
+        )
+        return
+
+    try:
+        processed = await asyncio.to_thread(
+            create_mosaic_tiles,
+            source_buffer.getvalue(),
+            mosaic_size.width,
+            mosaic_size.height,
+            remove_background,
+        )
+    except ImageProcessingError as error:
+        await state.clear()
+
+        await status_message.edit_text(
+            f"{error}\n\n"
+            "Отправь /start, чтобы попробовать ещё раз."
+        )
+        return
+
+    await status_message.edit_text(
+        "Изображение обработано.\n\n"
+        f"Размер: "
         f"{mosaic_size.width} × {mosaic_size.height} px\n"
         f"Сетка: "
-        f"{mosaic_size.columns} × {mosaic_size.rows}\n"
-        f"Количество эмодзи: {mosaic_size.tile_count}\n"
-        f"Размер одного эмодзи: 100 × 100 px\n"
-        f"Фон: {background_text}\n\n"
-        "Параметры сохранены. Далее добавим обработку."
+        f"{processed.columns} × {processed.rows}\n"
+        f"Создано тайлов: {processed.tile_count}"
+    )
+
+    first_tile = BufferedInputFile(
+        processed.tiles[0],
+        filename="tile_1.png",
+    )
+
+    await message.answer_document(
+        first_tile,
+        caption=(
+            "Это первый тайл для проверки. "
+            "Его размер должен быть 100 × 100 px."
+        ),
     )
