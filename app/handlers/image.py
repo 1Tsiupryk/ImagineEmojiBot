@@ -16,6 +16,8 @@ from app.states import EmojiCreation
 from app.services.mosaic import (
     MosaicSizeValidationError,
     parse_mosaic_size,
+    build_custom_emoji_mosaic,
+    MosaicBuildError
 )
 
 import asyncio
@@ -24,6 +26,8 @@ from app.services.sticker_set import (
     StickerSetCreationError,
     create_custom_emoji_pack,
 )
+
+from aiogram.exceptions import TelegramAPIError
 
 router = Router()
 
@@ -203,8 +207,49 @@ async def handle_size(message: Message, state: FSMContext, bot: Bot) -> None:
         await status_message.edit_text(error_text)
         return
 
+    try:
+        mosaic = build_custom_emoji_mosaic(
+            custom_emoji_ids=pack.custom_emoji_ids,
+            columns=processed.columns,
+            rows=processed.rows,
+        )
+    except MosaicBuildError as error:
+        await state.clear()
+
+        await status_message.edit_text(
+            "Набор был создан, но собрать мозаику не удалось.\n\n"
+            f"Причина: {error}\n\n"
+            f"Ссылка на набор:\n{pack.link}"
+        )
+        return
+
     await status_message.edit_text(
         "Набор эмодзи создан!\n\n"
+        f"Количество эмодзи: "
+        f"{len(pack.custom_emoji_ids)}\n"
+        f"Ссылка на набор:\n{pack.link}\n\n"
+        "Отправляю мозаику..."
+    )
+
+    try:
+        await message.answer(
+            text=mosaic.text,
+            entities=list(mosaic.entities),
+        )
+    except TelegramAPIError:
+        await state.clear()
+
+        await status_message.edit_text(
+            "Набор эмодзи создан, но Telegram не разрешил "
+            "отправить мозаику.\n\n"
+            "Проверь, что владелец бота имеет активную "
+            "подписку Telegram Premium.\n\n"
+            f"Ссылка на набор:\n{pack.link}"
+        )
+        return
+
+    await status_message.edit_text(
+        "Готово!\n\n"
         f"Количество эмодзи: "
         f"{len(pack.custom_emoji_ids)}\n"
         f"Ссылка на набор:\n{pack.link}"

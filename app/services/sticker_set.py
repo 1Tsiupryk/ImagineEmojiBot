@@ -8,9 +8,9 @@ from aiogram.types import (
     InputSticker,
 )
 
+from app.services.mosaic import FALLBACK_EMOJI
 
 INITIAL_STICKER_LIMIT = 50
-FALLBACK_EMOJI = "🟦"
 
 
 class StickerSetCreationError(RuntimeError):
