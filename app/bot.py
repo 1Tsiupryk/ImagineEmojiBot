@@ -7,6 +7,8 @@ from app.config import load_config
 from app.handlers.start import router as start_router
 from aiogram.fsm.storage.memory import MemoryStorage
 from app.handlers.image import router as image_router
+from app.handlers.cancel import router as cancel_router
+from app.middlewares.access import AccessMiddleware
 
 async def main() -> None:
     logging.basicConfig(level=logging.INFO)
@@ -14,8 +16,13 @@ async def main() -> None:
     config = load_config()
     bot = Bot(token=config.bot_token)
 
-    #temporary storage for FSM
     dispatcher = Dispatcher(storage=MemoryStorage())
+
+    access_middleware = AccessMiddleware(allowed_user_id=config.allowed_user_id)
+    dispatcher.message.outer_middleware(access_middleware)
+    dispatcher.callback_query.outer_middleware(access_middleware)
+
+    dispatcher.include_router(cancel_router)
     dispatcher.include_router(start_router)
     dispatcher.include_router(image_router)
 

@@ -46,7 +46,6 @@ def generate_pack_name(
 
     prefix = f"mosaic_{user_id}_{random_part}"
 
-    # Telegram limits the complete name to 64 characters.
     available_prefix_length = 64 - len(suffix)
 
     prefix = prefix[:available_prefix_length].rstrip("_")
@@ -90,7 +89,7 @@ async def create_custom_emoji_pack(
         bot_username=me.username,
     )
 
-    pack_title = "Emoji mosaic"
+    pack_title = "Emoji pack by @gaxillic"
 
     stickers = [
         make_input_sticker(
