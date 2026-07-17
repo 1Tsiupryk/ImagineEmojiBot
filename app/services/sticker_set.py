@@ -43,7 +43,7 @@ def generate_pack_name(
     suffix = f"_by_{bot_username}"
     random_part = secrets.token_hex(4)
 
-    prefix = f"mosaic_{random_part}"
+    prefix = f"emojipack_{random_part}"
 
     available_prefix_length = 64 - len(suffix)
 
@@ -83,10 +83,7 @@ async def create_custom_emoji_pack(
             "У бота отсутствует username."
         )
 
-    pack_name = generate_pack_name(
-        user_id=user_id,
-        bot_username=me.username,
-    )
+    pack_name = generate_pack_name(bot_username=me.username)
 
     pack_title = "Emoji pack by @gaxillic"
 

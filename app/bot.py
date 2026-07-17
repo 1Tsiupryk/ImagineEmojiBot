@@ -9,12 +9,15 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from app.handlers.image import router as image_router
 from app.handlers.cancel import router as cancel_router
 from app.middlewares.access import AccessMiddleware
+from app.middlewares.retry_after import RetryAfterMiddleware
 
 async def main() -> None:
     logging.basicConfig(level=logging.INFO)
 
     config = load_config()
     bot = Bot(token=config.bot_token)
+
+    bot.session.middleware(RetryAfterMiddleware(max_retries=3, delay_buffer=0.5))
 
     dispatcher = Dispatcher(storage=MemoryStorage())
 
