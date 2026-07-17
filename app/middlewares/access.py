@@ -11,8 +11,8 @@ from aiogram.types import (
 
 
 class AccessMiddleware(BaseMiddleware):
-    def __init__(self, allowed_user_id: int) -> None:
-        self.allowed_user_id = allowed_user_id
+    def __init__(self, allowed_user_ids: frozenset[int]) -> None:
+        self.allowed_user_ids = allowed_user_ids
 
     async def __call__(
         self,
@@ -21,7 +21,7 @@ class AccessMiddleware(BaseMiddleware):
             Awaitable[Any],
         ],
         event: TelegramObject,
-        data: dict[str, Any],
+        data: dict[str, Any]
     ) -> Any:
         if isinstance(event, Message):
             user = event.from_user
@@ -38,7 +38,7 @@ class AccessMiddleware(BaseMiddleware):
         else:
             return None
 
-        if user is None or user.id != self.allowed_user_id:
+        if user is None or user.id not in self.allowed_user_ids:
             return None
 
         if chat is None or chat.type != ChatType.PRIVATE:

@@ -38,13 +38,12 @@ class CustomEmojiPack:
 
 
 def generate_pack_name(
-    user_id: int,
-    bot_username: str,
+    bot_username: str
 ) -> str:
     suffix = f"_by_{bot_username}"
     random_part = secrets.token_hex(4)
 
-    prefix = f"mosaic_{user_id}_{random_part}"
+    prefix = f"mosaic_{random_part}"
 
     available_prefix_length = 64 - len(suffix)
 

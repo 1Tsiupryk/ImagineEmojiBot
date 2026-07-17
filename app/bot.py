@@ -18,7 +18,7 @@ async def main() -> None:
 
     dispatcher = Dispatcher(storage=MemoryStorage())
 
-    access_middleware = AccessMiddleware(allowed_user_id=config.allowed_user_id)
+    access_middleware = AccessMiddleware(allowed_user_ids=config.allowed_user_ids)
     dispatcher.message.outer_middleware(access_middleware)
     dispatcher.callback_query.outer_middleware(access_middleware)
 

@@ -1,3 +1,5 @@
+from email import message
+
 from aiogram import Router, F
 from aiogram.types import (
     Message,
@@ -28,6 +30,15 @@ background_keyboard = InlineKeyboardMarkup(
 
 @router.message(CommandStart())
 async def handle_start(message: Message, state: FSMContext) -> None:
+    current_state = await state.get_state()
+
+    if current_state == EmojiCreation.processing.state:
+        await message.answer(
+            "Предыдущая операция ещё выполняется. "
+            "Дождись её завершения."
+        )
+        return
+
     await state.clear()
     await state.set_state(EmojiCreation.choosing_background)
 
